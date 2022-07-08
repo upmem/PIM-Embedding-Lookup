@@ -18,6 +18,10 @@ __mram_noinit float results[MAX_NR_BATCHES];
 __host uint32_t counter_all, counter_init;
 #endif
 
+#ifdef PERFCOUNT
+__host uint32_t counter_all, counter_init;
+#endif
+
 BARRIER_INIT(my_barrier, NR_TASKLETS);
 
 uint32_t indices_len;
@@ -69,7 +73,7 @@ main() {
         }
         barrier_wait(&my_barrier);
         if (me() == 0)
-            mram_write(tmp_results, &results[batch_start], ALIGN(batch_end - batch_start * sizeof(int32_t), 8));
+            mram_write(tmp_results, &results[batch_start], ALIGN((batch_end - batch_start) * sizeof(int32_t), 8));
         barrier_wait(&my_barrier);
     }
 
