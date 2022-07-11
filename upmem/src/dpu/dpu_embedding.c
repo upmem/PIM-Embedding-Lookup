@@ -9,10 +9,10 @@
 #include <perfcounter.h>
 
 __mram_noinit struct query_len input_lengths;
-__mram_noinit int32_t emb_data[MEGABYTE(14)];
+__mram_noinit float emb_data[MEGABYTE(14)];
 __mram_noinit uint32_t input_indices[MAX_INDEX_PER_BATCH * MAX_NR_BATCHES];
 __mram_noinit uint32_t input_offsets[MAX_NR_BATCHES];
-__mram_noinit int32_t results[MAX_NR_BATCHES];
+__mram_noinit float results[MAX_NR_BATCHES];
 
 #ifdef PERFCOUNT
 __host uint32_t counter_all, counter_init;
@@ -25,7 +25,7 @@ uint32_t nr_batches;
 __dma_aligned struct query_len lengths;
 __dma_aligned uint32_t indices[MAX_INDEX_PER_BATCH * MAX_NR_BATCHES];
 __dma_aligned uint32_t offsets[MAX_NR_BATCHES];
-__dma_aligned int32_t tmp_results[MAX_NR_BATCHES];
+__dma_aligned float tmp_results[MAX_NR_BATCHES];
 
 int
 main() {
@@ -69,7 +69,7 @@ main() {
         }
         barrier_wait(&my_barrier);
         if (me() == 0)
-            mram_write(tmp_results, &results[batch_start], ALIGN((batch_end - batch_start) * sizeof(int32_t), 8));
+            mram_write(tmp_results, &results[batch_start], ALIGN((batch_end - batch_start) * sizeof(float), 8));
         barrier_wait(&my_barrier);
     }
 
