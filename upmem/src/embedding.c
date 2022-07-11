@@ -6,8 +6,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-
-
 #define DPU_BINARY "./build/embdpu"
 
 /** @brief global referene to dpu_set */
@@ -34,9 +32,6 @@ alloc_dpus(uint64_t nr_dpus) {
     printf("Alloc DPUs,  NR_RANKS %u\n", nr_ranks);
 
     pthread_mutex_init(&read_mutex, NULL);
-
-
-
 }
 
 void
@@ -222,10 +217,8 @@ gather_rank_embedding_results(struct dpu_set_t rank, uint32_t rank_index, void *
 
     uint64_t rank_nr_embedding = rank_mapping->rank_nr_embedding[rank_index];
 
-        pthread_mutex_lock(&read_mutex);
-
     uint64_t dpu_col_index = 0;
-    printf("rank nr embedding %lu \n", rank_nr_embedding);
+    // printf("rank nr embedding %lu \n", rank_nr_embedding);
     for (uint32_t cur_emb = 0; cur_emb < rank_nr_embedding; cur_emb++) {
         uint64_t embedding_index = rank_mapping->embedding_index[rank_index][cur_emb];
         uint64_t embedding_chunk_start_col =
@@ -237,23 +230,15 @@ gather_rank_embedding_results(struct dpu_set_t rank, uint32_t rank_index, void *
             for (uint64_t batch_index = 0; batch_index < nr_barch_per_embedding; batch_index++) {
                 int32_t dpu_result = dpu_results_buffer[embedding_index][col_index][batch_index];
                 result_buffer[embedding_index][batch_index * nr_cols + col_index] =
-                    (float)( dpu_result)  *  pow(10, -9)  ;
-                printf("col index %lu , batch index %lu embedding index %lu \n", col_index,
-                       batch_index, embedding_index);
-                printf(" dpu_results_buffer %d\n", dpu_result);
-                printf(" results_buffer %f\n",
-                       result_buffer[embedding_index][col_index * nr_cols + col_index]);
-
-                //   printf("rank index %u  : embeddig index %lu col index %lu  batch index %lu "
-                //          "dpu_result %d\n",
-                //          rank_index,  embedding_index, col_index, batch_index, dpu_result );
-
-                // printf(" dpu_results_buffer embedding_index [%lu] col_index[%lu] batch_index [%lu] dpu_batch index %lu RES %d HRES %f\n", embedding_index, col_index,
-                //        col_index, batch_index, dpu_result, result_buffer[embedding_index] [col_index * nr_cols + col_index   ]   );
+                    (float) (dpu_result) *pow(10, -9);
+                // printf("col index %lu , batch index %lu embedding index %lu \n", col_index,
+                //        batch_index, embedding_index);
+                // printf(" dpu_results_buffer %d\n", dpu_result);
+                // printf(" results_buffer %f\n",
+                //        result_buffer[embedding_index][col_index * nr_cols + col_index]);
             }
         }
     }
-        pthread_mutex_unlock(&read_mutex);
     return DPU_OK;
 }
 
@@ -325,7 +310,7 @@ lookup(uint32_t **indices, uint32_t **offsets, struct input_info *input_info,
     callback_data->dpu_results_buffer = dpu_result_buffer;
     callback_data->rank_mapping_info = rank_mapping_info;
     DPU_ASSERT(
-        dpu_callback(dpu_set, gather_rank_embedding_results, callback_data, DPU_CALLBACK_DEFAULT));
+        dpu_callback(dpu_set, gather_rank_embedding_results, callback_data, DPU_CALLBACK_ASYNC));
     DPU_ASSERT(dpu_sync(dpu_set));
     // DPU_FOREACH(dpu_set, dpu, dpu_index) {
     //     // if(dpu_index==0)

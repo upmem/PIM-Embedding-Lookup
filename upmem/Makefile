@@ -1,13 +1,13 @@
 .PHONY:all
 
-MAX_INDEX_PER_BATCH=32
+MAX_INDEX_PER_BATCH=128
 MAX_NR_BATCHES=64
-NR_COLS=2
-NR_BATCHES=2
-NR_RUN=1
-INDEX_PER_BATCH=3
+NR_COLS=64
+NR_BATCHES=64
+NR_RUN=100
+INDEX_PER_BATCH=128
 NR_ROWS=50000
-NR_EMBEDDING=2
+NR_EMBEDDING=9
 NR_TASKLETS=16
 
 
@@ -15,7 +15,7 @@ build: build/emb build/embdpu
 
 build/emb: src/*.c include/*.h
 	mkdir -p build
-	gcc -O0 -g -Wall -msse4 -lm -lz -lpthread -I include \
+	gcc -O3 -g -Wall -msse4 -lm -lz -lpthread -I include \
 		-DNR_RUN=${NR_RUN} \
 		-DNR_TASKLETS=${NR_TASKLETS} \
 		-DMAX_INDEX_PER_BATCH=${MAX_INDEX_PER_BATCH} \
@@ -49,7 +49,7 @@ testdpu: FORCE
 
 tracedpu: FORCE
 	dpu-profiling functions -o dpu.json -a -A \
-		-f gather_rank_embedding \
+		-f gather_rank_embedding_results \
 		-f build_synthetic_input_data \
 		-f synthetic_inference \
 		-f populate_mram \

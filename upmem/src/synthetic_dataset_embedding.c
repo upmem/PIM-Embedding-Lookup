@@ -118,9 +118,9 @@ check_embedding_set_inference(int32_t **emb_tables, uint64_t nr_embedding, uint3
                 float host_result = tmp_result[col_index];
                 __attribute__((unused)) float diff;
                 diff = fabs(dpu_result * pow(10, 9) - host_result);
-                 printf("[%d][%d][%d]diff: %f\tdpu_result: %f\thost_result: %f\n",
-                 embedding_index,
-                        batch_index, col_index, diff, dpu_result * pow(10, 9), host_result);
+                // printf("[%d][%d][%d]diff: %f\tdpu_result: %f\thost_result: %f\n",
+                // embedding_index,
+                //        batch_index, col_index, diff, dpu_result * pow(10, 9), host_result);
                 /* check magnitude with arbitrary threshold */
                 if (fabs(dpu_result * pow(10, 9) - host_result) > 1000)
                     valid = false;
@@ -219,25 +219,28 @@ synthetic_inference(uint32_t **indices, uint32_t **offsets, struct input_info *i
     struct timespec start, end, diff;
     double sum = 0;
     for (int i = 0; i < multi_run; i++) {
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+        clock_gettime(CLOCK_REALTIME, &start);
+
         lookup(indices, offsets, input_info, rank_mapping_info, nr_embedding, nr_cols,
                result_buffer, dpu_result_buffer);
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+        clock_gettime(CLOCK_REALTIME, &end);
+
         diff = time_diff(start, end);
         sum += diff.tv_nsec + diff.tv_sec * 1e9;
     }
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    clock_gettime(CLOCK_REALTIME, &start);
     __attribute__((unused)) bool valid;
     valid =
         check_embedding_set_inference(emb_tables, nr_embedding, indices, offsets,
                                       input_info->indices_len, nr_batches, nr_cols, result_buffer);
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    clock_gettime(CLOCK_REALTIME, &end);
     diff = time_diff(start, end);
 
-    printf("inference : average latency [ms]: %lf, OK ? %d \n", 1e-6 * sum / multi_run,
-           (int) valid);
-    printf("verification took %lf ms\n", 1e-6 * (diff.tv_nsec +
-           diff.tv_sec * 1e9));
+    double dpu_time_ms = 1e-6 * sum / multi_run;
+    double cpu_time_ms = 1e-6 * (diff.tv_nsec + diff.tv_sec * 1e9);
+
+    printf("dpu [ms]: %lf, cpu [ms] %lf, dpu acceleration %lf, DPU OK ? %d \n", dpu_time_ms,
+           cpu_time_ms, cpu_time_ms / dpu_time_ms, (int) valid);
 }
 
 float **
