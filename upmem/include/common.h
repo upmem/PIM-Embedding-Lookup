@@ -23,6 +23,12 @@ bottom 12 bits (0xFFF) use: BITMASK(12) */
 #define WRAM_SIZE KILOBYTE(64)
 #define MRAM_SIZE MEGABYTE(64)
 
+#define DATA_SIZE_BYTE (sizeof(int32_t))
+#define DPU_EMB_DATA_SIZE (MEGABYTE(14))
+#define DPU_EMB_DATA_SIZE_BYTE (DATA_SIZE_BYTE * DPU_EMB_DATA_SIZE)
+
+#define MAX_NR_COLS_PER_DPU 64
+
 /* If you have a value that needs alignment to the nearest _width. For example,
 0xF283 needs aligning to the next largest multiple of 16: 
 ALIGN(0xF283, 16) will return 0xF290 */
