@@ -176,23 +176,82 @@ free_input_info(struct input_info *info) {
     free(info->nr_batches_per_embedding);
 }
 
+/**
+ * @brief draws one random integer between 0 and nr_rows, non-inclusive
+ * 
+ * @param nr_rows 
+ * @return uint32_t 
+ */
+static inline uint32_t
+random_index(uint64_t nr_rows) {
+    double index_norm = ((double) rand() / ((double) RAND_MAX + 1));
+    uint32_t index = (uint64_t) (nr_rows * index_norm);
+    return index;
+}
+
+/**
+ * @brief generate non-repeating random indices for one lookup
+ * 
+ * @param indices_per_batch 
+ * @param nr_rows 
+ * @param indices 
+ */
+void
+generate_random_indices(uint64_t indices_per_batch, uint64_t nr_rows, uint32_t *indices) {
+    // generate random indices
+    for (uint64_t j = 0; j < indices_per_batch; j++) {
+        indices[j] = random_index(nr_rows);
+    }
+
+    // count and swap out duplicates
+    unsigned int nr_duplicatas = 0;
+    uint64_t j = 0;
+    while (j < indices_per_batch - nr_duplicatas) {
+        uint64_t k = j + 1;
+        while(k < indices_per_batch - nr_duplicatas) {
+            if (indices[j] == indices[k]) {
+                nr_duplicatas++;
+                indices[k] = indices[indices_per_batch - nr_duplicatas];
+            }
+            else {
+                k++;
+            }
+        }
+        j++;
+    }
+
+    // regenerate duplicates until they are unique
+    for (uint64_t j = indices_per_batch - nr_duplicatas; j < indices_per_batch; j++) {
+        int unique = false;
+        while (!unique) {
+            uint32_t index = random_index(nr_rows);
+            unique = true;
+            for (uint64_t k = 0; k < j; k++) {
+                if (indices[k] == index) {
+                    unique = false;
+                    break;
+                }
+            }
+            if (unique) {
+                indices[j] = index;
+            }
+        }
+    }
+}
+
 void
 build_synthetic_input_data(uint32_t **indices, uint32_t **offsets, struct input_info *input_info,
                            uint64_t nr_embedding, uint64_t nr_batches, uint64_t indices_per_batch,
                            uint64_t nr_rows, uint64_t nr_cols) {
 
     // creates synthetic input batch of indices
+    srand(time(NULL));
     for (uint64_t k = 0; k < nr_embedding; k++) {
         input_info->indices_len[k] = nr_batches * indices_per_batch;
         input_info->nr_batches_per_embedding[k] = nr_batches;
         for (uint64_t i = 0; i < nr_batches; i++) {
             offsets[k][i] = i * indices_per_batch;
-            for (uint64_t j = 0; j < indices_per_batch; j++) {
-                double index_norm = ((double) rand() / RAND_MAX);
-                uint64_t index = (uint64_t) (nr_rows * index_norm);
-                indices[k][i * indices_per_batch + j] = index;
-                assert(index < nr_rows);
-            }
+            generate_random_indices(indices_per_batch, nr_rows, &indices[k][i * indices_per_batch]);
         }
     }
 }
