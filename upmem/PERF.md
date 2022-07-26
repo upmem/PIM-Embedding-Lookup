@@ -1,3 +1,207 @@
+# perf multicolo
+
+# update Mt(fix CPU mt bug)
+MAX_NR_DPUS=10000
+MAX_NR_EMBEDDING=2000
+MAX_INDEX_PER_BATCH=160
+MAX_NR_BATCHES=60
+NR_COLS=16
+NR_BATCHES=60
+NR_RUN=1
+INDEX_PER_BATCH=160
+MAX_INDEX_PER_BATCH_RAND=100
+NR_ROWS=700000
+NR_EMBEDDING=2000
+NR_TASKLETS=16
+CHECK_RESULTS=1
+RAND_INPUT_SIZE=0
+max nr embedding 2000
+dpu [ms]: 25168.563700, cpu [ms] 15498.881400, dpu acceleration 0.615803
+ DPU PRATIO 982.853613, CPU PRATIO 134.521661, DPU OK ? 0 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
+
+
+contre verif 1 : sans le MT :
+
+
+
+
+contre verif 2 : sans le verif (voir si le fait de desactiver le CPU
+a un effet).
+
+
+
+
+
+
+#update Mt
+MAX_NR_DPUS=10000
+MAX_NR_EMBEDDING=2000
+MAX_INDEX_PER_BATCH=160
+MAX_NR_BATCHES=60
+NR_COLS=16
+NR_BATCHES=60
+NR_RUN=1
+INDEX_PER_BATCH=160
+MAX_INDEX_PER_BATCH_RAND=100
+NR_ROWS=700000
+NR_EMBEDDING=1000
+NR_TASKLETS=16
+CHECK_RESULTS=1
+RAND_INPUT_SIZE=0
+./build/emb
+alloc FIFO [build_synthetic_input_data->inference], DEPTH(2)
+map embeddings on DPUs
+min nr cols per dpu 2
+nr cols per dpus 16, dpu part col 0
+MRAM_SIZE 67108864 DPU_EMB_DATA_SIZE_BYTE 58720256 nr cols per dpus 16
+nr_dpus 1000
+nr cols per dpu 16
+alloc dpus 1000
+generate synthetic tables
+populate mram with embedding synthetic tables
+start inference
+max nr embedding 2000
+[PERF] DPU CLOCK RAW time [ms]: 24705.76
+[PERF] DPUTIME time [ms]: 189767.68
+[PERF] DPU PROCESS ratio: 768.11
+[PERF] CPU CLOCK RAW time [ms]: 36988.03
+[PERF] CPUTIME time [ms]: 58643.81
+[PERF] CPU PROCESS ratio: 158.55
+dpu [ms]: 24705.760000, cpu [ms] 36988.032000, dpu acceleration 1.497142, DPU OK ? 1 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
+
+
+
+# 2 (cpu multitherad)
+MAX_NR_DPUS=10000
+MAX_NR_EMBEDDING=2000
+MAX_INDEX_PER_BATCH=160
+MAX_NR_BATCHES=60
+NR_COLS=16
+NR_BATCHES=60
+NR_RUN=1
+INDEX_PER_BATCH=120
+MAX_INDEX_PER_BATCH_RAND=100
+NR_ROWS=700000
+NR_EMBEDDING=2000
+NR_TASKLETS=16
+CHECK_RESULTS=1
+RAND_INPUT_SIZE=0
+
+./build/emb
+alloc FIFO [build_synthetic_input_data->inference], DEPTH(2)
+map embeddings on DPUs
+min nr cols per dpu 2
+nr cols per dpus 16, dpu part col 0
+MRAM_SIZE 67108864 DPU_EMB_DATA_SIZE_BYTE 58720256 nr cols per dpus 16
+nr_dpus 2000
+nr cols per dpu 16
+alloc dpus 2000
+populate mram with embedding synthetic tables
+start inference
+max nr embedding 2000
+dpu [ms]: 24.325885, cpu [ms] 807.520337, dpu acceleration 33.195928, DPU OK ? 1 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
+
+# 2 (cpu singlethread)
+./build/emb
+alloc FIFO [build_synthetic_input_data->inference], DEPTH(2)
+map embeddings on DPUs
+min nr cols per dpu 2
+nr cols per dpus 16, dpu part col 0
+MRAM_SIZE 67108864 DPU_EMB_DATA_SIZE_BYTE 58720256 nr cols per dpus 16
+nr_dpus 2000
+nr cols per dpu 16
+alloc dpus 2000
+populate mram with embedding synthetic tables
+start inference
+max nr embedding 2000
+dpu [ms]: 25.756069, cpu [ms] 3244.451591, dpu acceleration 125.968431, DPU OK ? 1 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
+
+
+
+
+
+# 1
+MAX_NR_DPUS=10000
+MAX_NR_EMBEDDING=2000
+MAX_INDEX_PER_BATCH=160
+MAX_NR_BATCHES=60
+NR_COLS=16
+NR_BATCHES=60
+NR_RUN=1
+INDEX_PER_BATCH=120
+MAX_INDEX_PER_BATCH_RAND=100
+NR_ROWS=700000
+NR_EMBEDDING=2000
+NR_TASKLETS=16
+CHECK_RESULTS=1
+RAND_INPUT_SIZE=0
+./build/emb
+alloc FIFO [build_synthetic_input_data->inference], DEPTH(2)
+map embeddings on DPUs
+nr cols per dpus 16, dpu part col 0
+MRAM_SIZE 67108864 DPU_EMB_DATA_SIZE_BYTE 58720256 nr cols per dpus 16
+nr_dpus 2000
+alloc dpus 2000
+populate mram with embedding synthetic tables
+start inference
+max nr embedding 2000
+dpu [ms]: 22.364698, cpu [ms] 1184.088887, dpu acceleration 52.944551, DPU OK ? 1 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
+
+
+
+
+# 0 
+MAX_NR_DPUS=10000
+MAX_NR_EMBEDDING=1000
+MAX_INDEX_PER_BATCH=160
+MAX_NR_BATCHES=60
+NR_COLS=16
+NR_BATCHES=60
+NR_RUN=1
+INDEX_PER_BATCH=120
+MAX_INDEX_PER_BATCH_RAND=100
+NR_ROWS=700000
+NR_EMBEDDING=1000
+NR_TASKLETS=16
+CHECK_RESULTS=1
+RAND_INPUT_SIZE=0
+
+./build/emb
+alloc FIFO [build_synthetic_input_data->inference], DEPTH(2)
+map embeddings on DPUs
+nr cols per dpus 16, dpu part col 0
+MRAM_SIZE 67108864 DPU_EMB_DATA_SIZE_BYTE 58720256 nr cols per dpus 16
+nr_dpus 1000
+alloc dpus 1000
+populate mram with embedding synthetic tables
+start inference
+max nr embedding 1000
+dpu [ms]: 14.792739, cpu [ms] 581.375319, dpu acceleration 39.301398, DPU OK ? 1 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
+
+# 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cloud8
 MAX_NR_EMBEDDING=100
 MAX_INDEX_PER_BATCH=128

@@ -56,15 +56,16 @@ typedef struct dpu_runtime_group {
     dpu_runtime_interval *intervals;
 } dpu_runtime_group;
 
-struct input_info {
-    uint64_t *nr_batches_per_embedding;
+typedef struct input_info {
     uint64_t *indices_len;
-};
+    uint64_t nr_batches;
+    uint64_t nr_indexes;
+} input_info;
 typedef struct input_batch {
     bool valid;
     uint32_t **indices;
     uint32_t **offsets;
-    struct input_info *input_info;
+    input_info *input_info;
 } input_batch;
 
 typedef struct embedding_dpu_mapping {
@@ -73,13 +74,15 @@ typedef struct embedding_dpu_mapping {
     uint32_t embedding_index;
 } embedding_dpu_mapping;
 
-typedef struct embeding_rank_mapping {
+typedef struct embedding_info {
+    uint32_t nr_embedding;
     uint32_t nr_rows;
     uint32_t nr_cols;
     uint32_t sizeT;
+} embedding_info;
+
+typedef struct embeding_rank_mapping {
     uint32_t nr_dpus;
-    uint32_t nr_embedding;
-    uint32_t nr_batches;
     uint32_t nr_ranks;
     uint64_t nr_cols_per_dpu;
     uint64_t dpu_part_col;
@@ -88,7 +91,7 @@ typedef struct embeding_rank_mapping {
     embedding_dpu_mapping **rank_dpus_mapping;
 } embedding_rank_mapping;
 
-uint64_t
+embedding_rank_mapping *
 get_embedding_dpu_mapping(uint64_t nr_rows, uint32_t sizeT, uint64_t nr_cols,
                           uint64_t nr_embedding);
 
@@ -99,10 +102,10 @@ void
 free_embedding_rank_mapping(embedding_rank_mapping *rank_mapping);
 
 embedding_rank_mapping *
-embedding_dpu_map(uint64_t nr_embedding, uint64_t nr_batches, uint64_t nr_rows, uint64_t nr_cols);
+embedding_dpu_map(embedding_info *emb_info, input_info *i_info);
 
 void
-populate_mram(embedding_rank_mapping *rank_mapping, int32_t **emb_tables);
+populate_mram(embedding_rank_mapping *rank_mapping, embedding_info *emb_info, int32_t **emb_tables);
 
 dpu_error_t
 post_process(struct dpu_set_t dpu_rank, uint64_t rank_id, void *arg);

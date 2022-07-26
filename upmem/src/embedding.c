@@ -28,7 +28,11 @@ free_embedding_rank_mapping(embedding_rank_mapping *rank_mapping) {
 }
 
 embedding_rank_mapping *
-embedding_dpu_map(uint64_t nr_embedding, uint64_t nr_batches, uint64_t nr_rows, uint64_t nr_cols) {
+embedding_dpu_map(embedding_info *emb_info, input_info *i_info) {
+
+    uint64_t nr_embedding = emb_info->nr_embedding;
+    uint64_t nr_rows = emb_info->nr_rows;
+    uint64_t nr_cols = emb_info->nr_cols;
 
     uint64_t nr_dpus = 0;
     uint32_t sizeT = sizeof(int32_t);
@@ -36,7 +40,15 @@ embedding_dpu_map(uint64_t nr_embedding, uint64_t nr_batches, uint64_t nr_rows, 
     embedding_rank_mapping *rank_mapping = malloc(sizeof(embedding_rank_mapping));
 
     uint64_t nr_cols_per_dpu;
-    assert(nr_rows * sizeT * 2 < DPU_EMB_DATA_SIZE_BYTE);
+
+    uint64_t min_col_per_dpu = 1;
+    while (min_col_per_dpu * sizeT % 8)
+        min_col_per_dpu++;
+
+    printf("min nr cols per dpu %lu\n", min_col_per_dpu);
+
+    /* check if the minimum number of column fit the MRAM EMB DATA SECTION */
+    assert("MRAM emb data too small" && nr_rows * sizeT * min_col_per_dpu < DPU_EMB_DATA_SIZE_BYTE);
     nr_cols_per_dpu = DPU_EMB_DATA_SIZE_BYTE / (nr_rows * sizeT);
     if (nr_cols_per_dpu > nr_cols)
         nr_cols_per_dpu = nr_cols;
@@ -50,18 +62,15 @@ embedding_dpu_map(uint64_t nr_embedding, uint64_t nr_batches, uint64_t nr_rows, 
     uint64_t dpu_part_col = nr_cols % nr_cols_per_dpu;
     printf("nr cols per dpus %lu, dpu part col %lu\n", nr_cols_per_dpu, dpu_part_col);
 
-    rank_mapping->sizeT = sizeT;
-    rank_mapping->nr_cols = nr_cols;
-    rank_mapping->nr_rows = nr_rows;
+    emb_info->sizeT = sizeT;
+    emb_info->nr_cols = nr_cols;
+    emb_info->nr_rows = nr_rows;
+    emb_info->nr_embedding = nr_embedding;
     rank_mapping->nr_cols_per_dpu = nr_cols_per_dpu;
     rank_mapping->dpu_part_col = dpu_part_col;
-    rank_mapping->nr_embedding = nr_embedding;
-    rank_mapping->nr_batches = nr_batches;
-    printf("MRAM_SIZE %lu DPU_EMB_DATA_SIZE_BYTE %lu nr cols per dpus %lu\n", MRAM_SIZE,
+    printf("MRAM_SIZE %u DPU_EMB_DATA_SIZE_BYTE %lu nr cols per dpus %lu\n", MRAM_SIZE,
            DPU_EMB_DATA_SIZE_BYTE, nr_cols_per_dpu);
     {
-        uint32_t rank_index = 0;
-        uint32_t rank_dpu_index = 0;
         uint32_t dpu_total_cols = 0;
         uint32_t embedding_index = 0;
         uint32_t embedding_cur_col = 0;
@@ -183,12 +192,13 @@ embedding_dpu_map(uint64_t nr_embedding, uint64_t nr_batches, uint64_t nr_rows, 
  *  @param TODO
  */
 void
-populate_mram(embedding_rank_mapping *rank_mapping, int32_t **emb_tables) {
+populate_mram(embedding_rank_mapping *rank_mapping, embedding_info *emb_info,
+              int32_t **emb_tables) {
 
-    uint64_t sizeT = rank_mapping->sizeT;
+    uint64_t sizeT = emb_info->sizeT;
     uint32_t nr_dpus = rank_mapping->nr_dpus;
-    uint32_t nr_cols = rank_mapping->nr_cols;
-    uint32_t nr_rows = rank_mapping->nr_rows;
+    uint32_t nr_cols = emb_info->nr_cols;
+    uint32_t nr_rows = emb_info->nr_rows;
     uint32_t nr_cols_per_dpu = rank_mapping->nr_cols_per_dpu;
     uint32_t dpu_part_col = rank_mapping->dpu_part_col;
     /* allocates ant creates transpose embeding matrix of parameters */
@@ -212,7 +222,6 @@ populate_mram(embedding_rank_mapping *rank_mapping, int32_t **emb_tables) {
                 uint64_t start_col =
                     rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].start_col;
                 for (uint64_t row_index = 0; row_index < nr_rows; row_index++) {
-                    uint64_t dpu_col_index;
                     for (uint64_t col_index = start_col, dpu_col_index = 0;
                          col_index < nr_cols_per_dpu + start_col; col_index++, dpu_col_index++) {
                         buffer_data[dpu_index][row_index * nr_cols_per_dpu + dpu_col_index] =
@@ -256,7 +265,7 @@ populate_mram(embedding_rank_mapping *rank_mapping, int32_t **emb_tables) {
     }
 
     if (nr_dpus_) {
-        printf("start xfer %lu part dpus with size %lu nr cols %lu\n", nr_dpus_,
+        printf("start xfer %lu part dpus with size %lu nr cols %u\n", nr_dpus_,
                nr_rows * sizeT * dpu_part_col, dpu_part_col);
         DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "emb_data", 0,
                                  nr_rows * sizeT * dpu_part_col, DPU_XFER_DEFAULT));
@@ -284,7 +293,7 @@ populate_mram(embedding_rank_mapping *rank_mapping, int32_t **emb_tables) {
 }
 struct callback_input {
     float **result_buffer;
-    uint64_t *nr_batches_per_embedding;
+    uint64_t nr_batches;
     int32_t **dpu_results_buffer;
     uint64_t nr_cols;
     uint64_t nr_rows;
@@ -301,16 +310,14 @@ struct callback_input *callback_data = NULL;
  */
 dpu_error_t
 gather_rank_embedding_results(struct dpu_set_t rank, uint32_t rank_index, void *cb_arg) {
-    struct dpu_set_t dpu;
+    __attribute__((unused)) struct dpu_set_t dpu;
 
     struct callback_input *input = (struct callback_input *) cb_arg;
     int32_t **dpu_results_buffer = input->dpu_results_buffer;
     float **result_buffer = input->result_buffer;
-    uint64_t *nr_batches_per_embedding = input->nr_batches_per_embedding;
+    uint64_t nr_batches = input->nr_batches;
     uint64_t nr_cols = input->nr_cols;
-    uint64_t nr_rows = input->nr_rows;
     embedding_rank_mapping *rank_mapping = input->rank_mapping_info;
-    uint64_t nr_dpus_ = 0;
 
     uint32_t rank_start_dpus = rank_mapping->rank_start_dpus[rank_index];
 
@@ -326,8 +333,7 @@ gather_rank_embedding_results(struct dpu_set_t rank, uint32_t rank_index, void *
                 rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].embedding_index;
             uint64_t start_col =
                 rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].start_col;
-            for (uint64_t batch_index = 0; batch_index < nr_batches_per_embedding[emb_index];
-                 batch_index++) {
+            for (uint64_t batch_index = 0; batch_index < nr_batches; batch_index++) {
                 for (uint64_t col_index = 0; col_index < rank_mapping->nr_cols_per_dpu;
                      col_index++) {
                     int32_t dpu_result =
@@ -350,8 +356,7 @@ gather_rank_embedding_results(struct dpu_set_t rank, uint32_t rank_index, void *
                 rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].embedding_index;
             uint64_t start_col =
                 rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].start_col;
-            for (uint64_t batch_index = 0; batch_index < nr_batches_per_embedding[emb_index];
-                 batch_index++) {
+            for (uint64_t batch_index = 0; batch_index < nr_batches; batch_index++) {
                 for (uint64_t col_index = 0; col_index < rank_mapping->dpu_part_col; col_index++) {
                     int32_t dpu_result =
                         dpu_results_buffer[dpu_index]
@@ -379,7 +384,7 @@ gather_rank_embedding_results(struct dpu_set_t rank, uint32_t rank_index, void *
  *  @return TBC
  */
 int32_t *
-lookup(uint32_t **indices, uint32_t **offsets, struct input_info *input_info,
+lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
        embedding_rank_mapping *rank_mapping, uint64_t nr_embedding, uint64_t nr_cols,
        uint64_t nr_rows, float **result_buffer, int32_t **dpu_result_buffer) {
 
@@ -391,15 +396,12 @@ lookup(uint32_t **indices, uint32_t **offsets, struct input_info *input_info,
 
     uint64_t sizeT = sizeof(int32_t);
 
-    uint32_t max_nr_batches = 0;
+    uint32_t max_nr_batches = input_info->nr_batches;
     uint32_t max_indices_len = 0;
 
     for (uint64_t emb_index = 0; emb_index < nr_embedding; emb_index++) {
         if (max_indices_len < input_info->indices_len[emb_index])
             max_indices_len = input_info->indices_len[emb_index];
-
-        if (max_nr_batches < input_info->nr_batches_per_embedding[emb_index])
-            max_nr_batches = input_info->nr_batches_per_embedding[emb_index];
     }
 
     DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
@@ -435,7 +437,7 @@ lookup(uint32_t **indices, uint32_t **offsets, struct input_info *input_info,
             uint64_t emb_index =
                 rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].embedding_index;
             lengths[emb_index].indices_len = input_info->indices_len[emb_index];
-            lengths[emb_index].nr_batches = input_info->nr_batches_per_embedding[emb_index];
+            lengths[emb_index].nr_batches = input_info->nr_batches;
             DPU_ASSERT(dpu_prepare_xfer(dpu, &lengths[emb_index]));
         }
     }
@@ -490,7 +492,7 @@ lookup(uint32_t **indices, uint32_t **offsets, struct input_info *input_info,
     callback_data->nr_cols = nr_cols;
     callback_data->nr_rows = nr_rows;
     callback_data->result_buffer = result_buffer;
-    callback_data->nr_batches_per_embedding = input_info->nr_batches_per_embedding;
+    callback_data->nr_batches = input_info->nr_batches;
     callback_data->dpu_results_buffer = dpu_result_buffer;
     callback_data->rank_mapping_info = rank_mapping;
     DPU_ASSERT(
