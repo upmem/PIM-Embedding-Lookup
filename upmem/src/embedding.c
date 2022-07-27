@@ -170,12 +170,12 @@ embedding_dpu_map(embedding_info *emb_info, input_info *i_info) {
                 break;
         }
     }
-
+#define DBG 0
 #if (DBG == 1)
     for (uint32_t rank_index = 0; rank_index < rank_mapping->nr_ranks; rank_index++) {
         for (uint32_t rank_dpu_index = 0; rank_dpu_index < rank_mapping->rank_nr_dpus[rank_index];
              rank_dpu_index++) {
-            printf("rank %lu dpu %lu emb index %lu start col %lu nr col %lu\n", rank_index,
+            printf("rank %u dpu %u emb index %u start col %u nr col %lu\n", rank_index,
                    rank_dpu_index,
                    rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].embedding_index,
                    rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].start_col,
@@ -183,7 +183,7 @@ embedding_dpu_map(embedding_info *emb_info, input_info *i_info) {
         }
     }
 #endif
-
+#undef DBG
     rank_mapping->nr_dpus = nr_dpus;
     return rank_mapping;
 }
@@ -445,6 +445,16 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
     DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "input_lengths", 0, sizeof(struct query_len),
                              DPU_XFER_DEFAULT));
     DPU_ASSERT(dpu_launch(dpu_set, DPU_SYNCHRONOUS));
+#if (PERFCOUNT == 1)
+    {
+        uint32_t dpu_index;
+        aPU_ASSERT(dpu_sync(dpu_set));
+        DPU_FOREACH(dpu_set, dpu, dpu_index) {
+            DPU_ASSERT(dpu_log_read(dpu, stdout));
+            break;
+        }
+    }
+#endif
 
 #if (DPUDBG == 1)
     {

@@ -11,7 +11,7 @@ NR_RUN=1
 INDEX_PER_BATCH=160
 MAX_INDEX_PER_BATCH_RAND=160
 NR_ROWS=700000
-NR_EMBEDDING=200
+NR_EMBEDDING=1500
 NR_TASKLETS=16
 CHECK_RESULTS=1
 RAND_INPUT_SIZE=0
@@ -19,7 +19,7 @@ build: build/emb build/embdpu
 
 build/emb: src/*.c include/*.h
 	mkdir -p build
-	gcc -O3      -Wall -mavx -msse4 -lm -lz -lpthread -I include \
+	gcc -O3     -Wall -mavx -msse4 -lm -lz -lpthread -I include \
 		-DNR_RUN=${NR_RUN} \
 		-DCHECK_RESULTS=${CHECK_RESULTS} \
 		-DMAX_NR_DPUS=${MAX_NR_DPUS} \
@@ -39,7 +39,7 @@ build/emb: src/*.c include/*.h
 build/embdpu: src/dpu/*.c 
 	mkdir -p build
 	# TODO : why flto fails
-	dpu-clang -O0 -pg -flto=thin -I include \
+	dpu-clang -O3  -flto=thin -I include \
 		-DNR_RUN=${NR_RUN} \
 		-DNR_TASKLETS=${NR_TASKLETS} \
 		-DMAX_NR_DPUS=${MAX_NR_DPUS} \

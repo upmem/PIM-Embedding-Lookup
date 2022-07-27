@@ -53,18 +53,40 @@ free_emb_tables(int32_t **emb_tables, embedding_info *emb_info) {
     free(emb_tables);
 }
 
+enum emb_datagen { RAND, CPT, ZERO, NONE };
 void
 synthetic_populate(embedding_rank_mapping *rank_mapping, embedding_info *emb_info,
                    int32_t **emb_tables) {
 
+    uint64_t emb_data_type = ZERO;
+
     printf("generate synthetic tables\n");
-    if (0) {
+    if (emb_data_type == RAND) {
         for (uint64_t embedding_index = 0; embedding_index < emb_info->nr_embedding;
              embedding_index++) {
             /* synthetize embedding table parameters */
             for (int i = 0; i < emb_info->nr_rows * emb_info->nr_cols; i++) {
                 double data_norm = (double) (rand()) / RAND_MAX / INDEX_PER_BATCH;
                 emb_tables[embedding_index][i] = (int32_t) (INT32_MAX * data_norm);
+            }
+        }
+    } else if (emb_data_type == CPT) {
+
+        double data_norm = (double) (rand()) / RAND_MAX / INDEX_PER_BATCH;
+        int32_t data_norm_ = (int32_t) (INT32_MAX * data_norm);
+        for (uint64_t embedding_index = 0; embedding_index < emb_info->nr_embedding;
+             embedding_index++) {
+            /* synthetize embedding table parameters */
+            for (int i = 0; i < emb_info->nr_rows * emb_info->nr_cols; i++) {
+                emb_tables[embedding_index][i] = (int32_t) (embedding_index + i + data_norm_);
+            }
+        }
+    } else if (emb_data_type == ZERO) {
+        for (uint64_t embedding_index = 0; embedding_index < emb_info->nr_embedding;
+             embedding_index++) {
+            /* synthetize embedding table parameters */
+            for (int i = 0; i < emb_info->nr_rows * emb_info->nr_cols; i++) {
+                emb_tables[embedding_index][i] = (int32_t) (0);
             }
         }
     }
@@ -395,7 +417,6 @@ synthetic_inference(uint32_t **indices, uint32_t **offsets, input_info *input_in
         dpu_p_ratio += process_time / time * 100.0;
         dpu_time += time;
     }
-#define CHECK_RESULTS 1
 #if (CHECK_RESULTS == 1)
     {
         uint64_t cpu_nr_thread = CPU_NR_THREAD_MAX;

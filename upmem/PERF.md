@@ -1,7 +1,36 @@
 # perf multicol
 
 
-# update Mt(fix CPU mt bug)
+# perf DPU
+        cyc       inst    ratio
+all     2530256  2488080  0.98
+init    28240    1808     0.064
+
+
+
+# update Mt (data non generated falsly boost CPU)
+
+# emb data pure rand (RAND)
+max nr embedding 2000
+dpu [ms]: 18053.449000, cpu [ms] 127023.148800, dpu acceleration 7.035949
+ DPU PRATIO 855.690423, CPU PRATIO 3077.237286, DPU OK ? 1 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
+
+
+# emb data counter (CPT) 
+max nr embedding 2000
+dpu [ms]: 18862.684700, cpu [ms] 152838.430000, dpu acceleration 8.102687
+ DPU PRATIO 857.428834, CPU PRATIO 2926.055898, DPU OK ? 1 
+
+# emb data non init (NONE)
+dpu [ms]: 17877.672750, cpu [ms] 18041.412150, dpu acceleration 1.009159
+ DPU PRATIO 932.438170, CPU PRATIO 2622.523159, DPU OK ? 1 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
+
+
+
+# update Mt(fix CPU mt bug), cloud7
+
 MAX_NR_DPUS=10000
 MAX_NR_EMBEDDING=2000
 MAX_INDEX_PER_BATCH=160
@@ -12,14 +41,16 @@ NR_RUN=1
 INDEX_PER_BATCH=160
 MAX_INDEX_PER_BATCH_RAND=160
 NR_ROWS=700000
-NR_EMBEDDING=2000
+NR_EMBEDDING=150
 NR_TASKLETS=16
 CHECK_RESULTS=1
 RAND_INPUT_SIZE=0
 
 
-
-
+max nr embedding 2000
+dpu [ms]: 18901.936400, cpu [ms] 17462.926300, dpu acceleration 0.923870
+ DPU PRATIO 865.897869, CPU PRATIO 2679.371648, DPU OK ? 1 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
 
 
 

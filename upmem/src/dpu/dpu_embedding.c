@@ -15,7 +15,7 @@ __mram_noinit int32_t emb_data[DPU_EMB_DATA_SIZE];
 __mram_noinit uint32_t input_indices[MAX_INDEX_PER_BATCH * MAX_NR_BATCHES];
 __mram_noinit uint32_t input_offsets[MAX_NR_BATCHES];
 __mram_noinit int32_t results[MAX_NR_BATCHES * MAX_NR_COLS_PER_DPU];
-
+// #define PERFCOUNT
 #ifdef PERFCOUNT
 __host uint32_t counter_all, counter_init;
 #endif
@@ -49,7 +49,7 @@ main() {
 #endif
 
 #ifdef PERFCOUNT
-        perfcounter_config(COUNT_CYCLES, true);
+        perfcounter_config(COUNT_INSTRUCTIONS, true);
 #endif
 
         /* load all indices */
@@ -120,9 +120,12 @@ main() {
     }
 #endif
 #ifdef PERFCOUNT
-    if (me() == 0) {
-        counter_all = perfcounter_get();
-    }
+    counter_all = perfcounter_get();
+#endif
+
+#ifdef PERFCOUNT
+    printf("counter all %u \n", counter_all);
+    printf("counter init %u \n", counter_init);
 #endif
 
     return 0;
