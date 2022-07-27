@@ -170,7 +170,7 @@ embedding_dpu_map(embedding_info *emb_info, input_info *i_info) {
                 break;
         }
     }
-#define DBG 0
+#define DBG 1
 #if (DBG == 1)
     for (uint32_t rank_index = 0; rank_index < rank_mapping->nr_ranks; rank_index++) {
         for (uint32_t rank_dpu_index = 0; rank_dpu_index < rank_mapping->rank_nr_dpus[rank_index];
@@ -456,6 +456,7 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
     }
 #endif
 
+#define DPUDBG 1
 #if (DPUDBG == 1)
     {
         uint32_t dpu_index;
@@ -465,6 +466,8 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
         }
     }
 #endif
+#undef DPUDBG
+
     uint64_t nr_dpus_ = 0;
 
     uint32_t dpu_index = 0;

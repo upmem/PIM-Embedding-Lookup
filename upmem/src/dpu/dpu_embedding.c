@@ -105,6 +105,7 @@ main() {
                        ALIGN(nr_cols * sizeof(int32_t), 8));
         }
     }
+#define DPUDBG 1
 #if (DPUDBG == 1)
     if (me() == 0) {
         for (uint64_t n_index = 0; n_index < nr_batches; n_index++) {
@@ -119,6 +120,7 @@ main() {
         }
     }
 #endif
+#undef DPUDBG
 #ifdef PERFCOUNT
     counter_all = perfcounter_get();
 #endif

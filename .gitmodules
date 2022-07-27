@@ -13,3 +13,6 @@
 [submodule "PIM-Pytorch"]
 	path = PIM-Pytorch
 	url = https://github.com/UBC-ECE-Sasha/PIM-Pytorch.git
+[submodule "DeepRecSys"]
+	path = DeepRecSys
+	url = https://github.com/harvard-acc/DeepRecSys

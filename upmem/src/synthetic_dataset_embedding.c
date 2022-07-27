@@ -58,7 +58,7 @@ void
 synthetic_populate(embedding_rank_mapping *rank_mapping, embedding_info *emb_info,
                    int32_t **emb_tables) {
 
-    uint64_t emb_data_type = ZERO;
+    uint64_t emb_data_type = RAND;
 
     printf("generate synthetic tables\n");
     if (emb_data_type == RAND) {
@@ -66,19 +66,17 @@ synthetic_populate(embedding_rank_mapping *rank_mapping, embedding_info *emb_inf
              embedding_index++) {
             /* synthetize embedding table parameters */
             for (int i = 0; i < emb_info->nr_rows * emb_info->nr_cols; i++) {
-                double data_norm = (double) (rand()) / RAND_MAX / INDEX_PER_BATCH;
+                double data_norm = (double) (rand()) / ((double) RAND_MAX + 1) / INDEX_PER_BATCH;
                 emb_tables[embedding_index][i] = (int32_t) (INT32_MAX * data_norm);
             }
         }
     } else if (emb_data_type == CPT) {
 
-        double data_norm = (double) (rand()) / RAND_MAX / INDEX_PER_BATCH;
-        int32_t data_norm_ = (int32_t) (INT32_MAX * data_norm);
         for (uint64_t embedding_index = 0; embedding_index < emb_info->nr_embedding;
              embedding_index++) {
             /* synthetize embedding table parameters */
             for (int i = 0; i < emb_info->nr_rows * emb_info->nr_cols; i++) {
-                emb_tables[embedding_index][i] = (int32_t) (embedding_index + i + data_norm_);
+                emb_tables[embedding_index][i] = (int32_t) (embedding_index + i);
             }
         }
     } else if (emb_data_type == ZERO) {
