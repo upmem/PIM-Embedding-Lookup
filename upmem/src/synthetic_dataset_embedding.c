@@ -58,12 +58,14 @@ synthetic_populate(embedding_rank_mapping *rank_mapping, embedding_info *emb_inf
                    int32_t **emb_tables) {
 
     printf("generate synthetic tables\n");
-    for (uint64_t embedding_index = 0; embedding_index < emb_info->nr_embedding;
-         embedding_index++) {
-        /* synthetize embedding table parameters */
-        for (int i = 0; i < emb_info->nr_rows * emb_info->nr_cols; i++) {
-            double data_norm = (double) (rand()) / RAND_MAX / INDEX_PER_BATCH;
-            emb_tables[embedding_index][i] = (int32_t) (INT32_MAX * data_norm);
+    if (0) {
+        for (uint64_t embedding_index = 0; embedding_index < emb_info->nr_embedding;
+             embedding_index++) {
+            /* synthetize embedding table parameters */
+            for (int i = 0; i < emb_info->nr_rows * emb_info->nr_cols; i++) {
+                double data_norm = (double) (rand()) / RAND_MAX / INDEX_PER_BATCH;
+                emb_tables[embedding_index][i] = (int32_t) (INT32_MAX * data_norm);
+            }
         }
     }
 
