@@ -39,7 +39,7 @@ build/emb: src/*.c include/*.h
 build/embdpu: src/dpu/*.c 
 	mkdir -p build
 	# TODO : why flto fails
-	dpu-clang -O3 -flto=thin -I include \
+	dpu-clang -O0 -pg -flto=thin -I include \
 		-DNR_RUN=${NR_RUN} \
 		-DNR_TASKLETS=${NR_TASKLETS} \
 		-DMAX_NR_DPUS=${MAX_NR_DPUS} \

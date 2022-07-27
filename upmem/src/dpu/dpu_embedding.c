@@ -7,6 +7,7 @@
 #include <defs.h>
 #include <mram.h>
 #include <perfcounter.h>
+#include <stdint.h>
 
 __host uint64_t nr_cols;
 __mram_noinit struct query_len input_lengths;
@@ -73,15 +74,18 @@ main() {
     uint64_t batch_lot_size = 2048 / sizeof(*results);
     uint64_t nr_batch_lots = (nr_batches / batch_lot_size) + 1;
     uint64_t batch_end = 0;
+
+    uint32_t _me = me();
+
     /* for each element of batch lot */
     for (uint64_t batch_lot = 0; batch_lot < nr_batch_lots; batch_lot++) {
         uint64_t batch_start = batch_end;
         batch_end = MIN(batch_start + batch_lot_size, nr_batches);
         /* for each element of batch : one indice vector by tasklet */
-        for (uint64_t i = me() + batch_start; i < batch_end; i += NR_TASKLETS) {
+        for (uint64_t i = _me + batch_start; i < batch_end; i += NR_TASKLETS) {
             /* reset results */
             for (uint64_t col_index = 0; col_index < nr_cols; col_index++)
-                tmp_results[me()][col_index] = 0;
+                tmp_results[_me][col_index] = 0;
 
             uint64_t upper_bound = i == nr_batches - 1 ? indices_len : offsets[i + 1];
 
@@ -89,15 +93,15 @@ main() {
             for (uint64_t indices_ptr = offsets[i]; indices_ptr < upper_bound; indices_ptr++) {
                 uint64_t ind = indices[indices_ptr];
                 /* load current table row */
-                mram_read(&emb_data[ind * nr_cols], tmp_emb_data[me()],
+                mram_read(&emb_data[ind * nr_cols], tmp_emb_data[_me],
                           ALIGN(nr_cols * sizeof(int32_t), 8));
                 /* for each column : rowise accumulate each element of current row indice */
                 for (uint64_t col_index = 0; col_index < nr_cols; col_index++) {
-                    tmp_results[me()][col_index] += tmp_emb_data[me()][col_index];
+                    tmp_results[_me][col_index] += tmp_emb_data[_me][col_index];
                 }
             }
             /* store accumulated row */
-            mram_write(tmp_results[me()], &results[i * nr_cols],
+            mram_write(tmp_results[_me], &results[i * nr_cols],
                        ALIGN(nr_cols * sizeof(int32_t), 8));
         }
     }
