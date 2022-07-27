@@ -105,7 +105,7 @@ main() {
                        ALIGN(nr_cols * sizeof(int32_t), 8));
         }
     }
-#define DPUDBG 1
+#define DPUDBG 0
 #if (DPUDBG == 1)
     if (me() == 0) {
         for (uint64_t n_index = 0; n_index < nr_batches; n_index++) {

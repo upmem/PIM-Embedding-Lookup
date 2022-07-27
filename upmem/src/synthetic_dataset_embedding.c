@@ -58,7 +58,7 @@ void
 synthetic_populate(embedding_rank_mapping *rank_mapping, embedding_info *emb_info,
                    int32_t **emb_tables) {
 
-    uint64_t emb_data_type = RAND;
+    uint64_t emb_data_type = CPT;
 
     printf("generate synthetic tables\n");
     if (emb_data_type == RAND) {
@@ -387,7 +387,7 @@ synthetic_inference(uint32_t **indices, uint32_t **offsets, input_info *input_in
     double cpu_p_ratio = 0, dpu_p_ratio = 0;
     __attribute__((unused)) bool valid;
     double cpu_time = 0, dpu_time = 0;
-    uint64_t multi_run = 20;
+    uint64_t multi_run = 1;
     for (int i = 0; i < multi_run; i++) {
         struct timespec start_time, start_process_time, stop_time, stop_process_time;
         clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);

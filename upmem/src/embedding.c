@@ -428,9 +428,9 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
                 rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].embedding_index;
             DPU_ASSERT(dpu_prepare_xfer(dpu, offsets[emb_index]));
         }
-        DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "input_offsets", 0,
-                                 ALIGN(max_nr_batches * sizeof(uint32_t), 8), DPU_XFER_DEFAULT));
     }
+    DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "input_offsets", 0,
+                             ALIGN(max_nr_batches * sizeof(uint32_t), 8), DPU_XFER_DEFAULT));
 
     DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
         DPU_FOREACH(rank, dpu, rank_dpu_index) {
@@ -456,7 +456,7 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
     }
 #endif
 
-#define DPUDBG 1
+#define DPUDBG 0
 #if (DPUDBG == 1)
     {
         uint32_t dpu_index;
