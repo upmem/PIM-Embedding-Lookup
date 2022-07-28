@@ -5,13 +5,13 @@ MAX_NR_DPUS=10000
 MAX_NR_EMBEDDING=2000
 MAX_INDEX_PER_BATCH=160
 MAX_NR_BATCHES=60
-NR_COLS=16
-NR_BATCHES=60
-NR_RUN=1
+NR_COLS=64
+NR_BATCHES=1
+NR_RUN=2
 INDEX_PER_BATCH=160
 MAX_INDEX_PER_BATCH_RAND=160
 NR_ROWS=700000
-NR_EMBEDDING=600
+NR_EMBEDDING=3
 NR_TASKLETS=1
 CHECK_RESULTS=1
 RAND_INPUT_SIZE=0
@@ -19,7 +19,7 @@ build: build/emb build/embdpu
 
 build/emb: src/*.c include/*.h
 	mkdir -p build
-	gcc -O3     -Wall -mavx -msse4 -lm -lz -lpthread -I include \
+	gcc -O0 -g     -Wall  -lm  -lpthread -I include \
 		-DNR_RUN=${NR_RUN} \
 		-DCHECK_RESULTS=${CHECK_RESULTS} \
 		-DMAX_NR_DPUS=${MAX_NR_DPUS} \

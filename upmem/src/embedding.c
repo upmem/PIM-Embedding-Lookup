@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 #define DPU_BINARY "./build/embdpu"
 /** @brief global referene to dpu_set */
@@ -100,7 +101,7 @@ embedding_dpu_map(embedding_info *emb_info, input_info *i_info) {
 
     printf("nr_dpus %lu\n", nr_dpus);
 
-    DPU_ASSERT(dpu_alloc(nr_dpus, "nrJobsPerRank=256", &dpu_set));
+    DPU_ASSERT(dpu_alloc(nr_dpus, "", &dpu_set));
     DPU_ASSERT(dpu_load(dpu_set, DPU_BINARY, NULL));
     {
         {
@@ -187,10 +188,12 @@ embedding_dpu_map(embedding_info *emb_info, input_info *i_info) {
     rank_mapping->nr_dpus = nr_dpus;
     return rank_mapping;
 }
+// static int32_t **buffer_data = NULL;
 
 /** @brief transfer one embedding table params to DPU DRAM
  *  @param TODO
  */
+int32_t buffer_data[16][200];
 void
 populate_mram(embedding_rank_mapping *rank_mapping, embedding_info *emb_info,
               int32_t **emb_tables) {
@@ -202,79 +205,74 @@ populate_mram(embedding_rank_mapping *rank_mapping, embedding_info *emb_info,
     uint32_t nr_cols_per_dpu = rank_mapping->nr_cols_per_dpu;
     uint32_t dpu_part_col = rank_mapping->dpu_part_col;
     /* allocates ant creates transpose embeding matrix of parameters */
-    int32_t **buffer_data;
-    buffer_data = (int32_t **) (malloc(nr_dpus * sizeof(int32_t *)));
-    for (uint64_t dpu_index = 0; dpu_index < nr_dpus; dpu_index++)
-        buffer_data[dpu_index] = (int32_t *) (malloc(nr_rows * nr_cols_per_dpu * sizeof(int32_t)));
+    //  if (buffer_data == NULL) {
+    //      buffer_data = (int32_t **) (malloc(nr_dpus * sizeof(int32_t *)));
+    //      for (uint64_t dpu_index = 0; dpu_index < nr_dpus; dpu_index++) {
+    //          buffer_data[dpu_index] = malloc(ALIGN(nr_rows * nr_cols_per_dpu * sizeT, 8));
+    //      }
+    //  }
 
     struct dpu_set_t dpu;
     struct dpu_set_t rank;
-    uint32_t dpu_index = 0;
+    uint64_t dpu_index = 0;
     uint64_t nr_dpus_ = 0;
     uint32_t rank_dpu_index;
     uint32_t rank_index;
-    DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
-        DPU_FOREACH(rank, dpu, rank_dpu_index) {
-            if (rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].nr_cols ==
-                nr_cols_per_dpu) {
-                uint64_t emb_index =
-                    rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].embedding_index;
-                uint64_t start_col =
-                    rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].start_col;
-                for (uint64_t row_index = 0; row_index < nr_rows; row_index++) {
-                    for (uint64_t col_index = start_col, dpu_col_index = 0;
-                         col_index < nr_cols_per_dpu + start_col; col_index++, dpu_col_index++) {
-                        buffer_data[dpu_index][row_index * nr_cols_per_dpu + dpu_col_index] =
-                            emb_tables[emb_index][row_index * nr_cols + col_index];
-                    }
-                }
-                DPU_ASSERT(dpu_prepare_xfer(dpu, buffer_data[dpu_index]));
-                nr_dpus_++;
-            } else
-                assert(rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].nr_cols ==
-                       dpu_part_col);
-            dpu_index++;
+    //   DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
+    //       DPU_FOREACH(rank, dpu, rank_dpu_index) {
+    //           if (rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].nr_cols ==
+    //               nr_cols_per_dpu) {
+    //               printf("full emb dpu %u \n", dpu_index);
+    //               uint64_t emb_index =
+    //                   rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].embedding_index;
+    //               uint64_t start_col =
+    //                   rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].start_col;
+    //               for (uint64_t row_index = 0; row_index < nr_rows; row_index++) {
+    //                   for (uint64_t col_index = start_col, dpu_col_index = 0;
+    //                        col_index < nr_cols_per_dpu + start_col; col_index++,
+    //                        dpu_col_index++)
+    //                        {
+    //                       buffer_data[dpu_index][row_index * nr_cols_per_dpu + dpu_col_index]
+    //                       =
+    //                           emb_tables[emb_index][row_index * nr_cols + col_index];
+    //                   }
+    //               }
+    //               DPU_ASSERT(dpu_prepare_xfer(dpu, buffer_data[dpu_index]));
+    //               nr_dpus_++;
+    //           } else
+    //               assert(rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].nr_cols
+    //               ==
+    //                      dpu_part_col);
+    //           dpu_index++;
+    //       }
+    //   }
+
+    //   DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "emb_data", 0,
+    //                            nr_rows * sizeT * nr_cols_per_dpu, DPU_XFER_DEFAULT));
+
+    for (uint64_t j = 0; j < 16; j++) {
+        for (uint64_t i = 0; i < 100; i++) {
+            buffer_data[j][i] = j + 1;
+            // buffer_data[j][i] = 0;
         }
     }
-
-    DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "emb_data", 0,
-                             nr_rows * sizeT * nr_cols_per_dpu, DPU_XFER_DEFAULT));
+    sleep(1);
+    struct dpu_set_t dpu_;
+    fflush(stdout);
     dpu_index = 0;
     nr_dpus_ = 0;
-    DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
-        DPU_FOREACH(rank, dpu, rank_dpu_index) {
-            if (rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].nr_cols ==
-                dpu_part_col) {
-                uint64_t emb_index =
-                    rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].embedding_index;
-                uint64_t start_col =
-                    rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].start_col;
-                for (uint64_t row_index = 0; row_index < nr_rows; row_index++) {
-                    for (uint64_t col_index = 0; col_index < dpu_part_col; col_index++) {
-                        buffer_data[dpu_index][row_index * dpu_part_col + col_index] =
-                            emb_tables[emb_index][row_index * nr_cols + col_index + start_col];
-                    }
-                }
-                DPU_ASSERT(dpu_prepare_xfer(dpu, buffer_data[dpu_index]));
-                nr_dpus_++;
-            } else
-                assert(rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].nr_cols ==
-                       nr_cols_per_dpu);
-            dpu_index++;
+    DPU_FOREACH(dpu_set, dpu_) {
+
+        printf("dpu index %u\n", dpu_index);
+        if (dpu_index == 0 || dpu_index == 2 || dpu_index == 3 || dpu_index == 7) {
+            DPU_ASSERT(dpu_prepare_xfer(dpu_, buffer_data[dpu_index]));
+            nr_dpus_++;
         }
+        dpu_index++;
     }
-
-    if (nr_dpus_) {
-        printf("start xfer %lu part dpus with size %lu nr cols %u\n", nr_dpus_,
-               nr_rows * sizeT * dpu_part_col, dpu_part_col);
-        DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "emb_data", 0,
-                                 nr_rows * sizeT * dpu_part_col, DPU_XFER_DEFAULT));
-    }
-
-    for (uint64_t dpu_index = 0; dpu_index < nr_dpus; dpu_index++)
-        free(buffer_data[dpu_index]);
-    free(buffer_data);
-
+    printf("start xfer %lu part dpus with size %lu nr cols %u\n", nr_dpus_,
+           nr_rows * sizeT * dpu_part_col, dpu_part_col);
+    DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "emb_data", 0, 128, DPU_XFER_DEFAULT));
     DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
         DPU_FOREACH(rank, dpu, rank_dpu_index) {
             DPU_ASSERT(dpu_prepare_xfer(
@@ -282,14 +280,34 @@ populate_mram(embedding_rank_mapping *rank_mapping, embedding_info *emb_info,
         }
     }
 
-    DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
-        DPU_FOREACH(rank, dpu, rank_dpu_index) {
-            DPU_ASSERT(dpu_prepare_xfer(
-                dpu, &(rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].nr_cols)));
-        }
-    }
     DPU_ASSERT(
         dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "nr_cols", 0, sizeof(uint64_t), DPU_XFER_DEFAULT));
+    DPU_ASSERT(dpu_launch(dpu_set, DPU_SYNCHRONOUS));
+
+    DPU_ASSERT(dpu_sync(dpu_set));
+    DPU_FOREACH(dpu_set, dpu, dpu_index) {
+        DPU_ASSERT(dpu_log_read(dpu, stdout));
+    }
+    exit(0);
+
+    DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
+        DPU_FOREACH(rank, dpu, rank_dpu_index) {
+            DPU_ASSERT(dpu_prepare_xfer(
+                dpu, &(rank_mapping->rank_dpus_mapping[rank_index][rank_dpu_index].nr_cols)));
+        }
+    }
+
+    DPU_ASSERT(
+        dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "nr_cols", 0, sizeof(uint64_t), DPU_XFER_DEFAULT));
+    // DPU_ASSERT(dpu_launch(dpu_set, DPU_SYNCHRONOUS));
+    //{
+    //    uint32_t dpu_index;
+    //    DPU_ASSERT(dpu_sync(dpu_set));
+    //    DPU_FOREACH(dpu_set, dpu, dpu_index) {
+    //        DPU_ASSERT(dpu_log_read(dpu, stdout));
+    //    }
+    //}
+    // exit(0);
 }
 struct callback_input {
     float **result_buffer;
@@ -420,7 +438,7 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
         }
     }
     DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "input_indices", 0,
-                             ALIGN(max_indices_len * sizeof(uint32_t), 8), DPU_XFER_DEFAULT));
+                             ALIGN(max_indices_len * sizeT, 8), DPU_XFER_DEFAULT));
 
     DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
         DPU_FOREACH(rank, dpu, rank_dpu_index) {
@@ -430,7 +448,7 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
         }
     }
     DPU_ASSERT(dpu_push_xfer(dpu_set, DPU_XFER_TO_DPU, "input_offsets", 0,
-                             ALIGN(max_nr_batches * sizeof(uint32_t), 8), DPU_XFER_DEFAULT));
+                             ALIGN(max_nr_batches * sizeT, 8), DPU_XFER_DEFAULT));
 
     DPU_RANK_FOREACH(dpu_set, rank, rank_index) {
         DPU_FOREACH(rank, dpu, rank_dpu_index) {
@@ -456,7 +474,7 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
     }
 #endif
 
-#define DPUDBG 0
+#define DPUDBG 1
 #if (DPUDBG == 1)
     {
         uint32_t dpu_index;
@@ -477,6 +495,7 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
                 rank_mapping->nr_cols_per_dpu) {
                 DPU_ASSERT(dpu_prepare_xfer(dpu, dpu_result_buffer[dpu_index]));
                 nr_dpus_++;
+                printf("full dpu index %u \n", dpu_index);
             }
             dpu_index++;
         }
@@ -493,6 +512,7 @@ lookup(uint32_t **indices, uint32_t **offsets, input_info *input_info,
                 rank_mapping->dpu_part_col) {
                 DPU_ASSERT(dpu_prepare_xfer(dpu, dpu_result_buffer[dpu_index]));
                 part_nr_dpus_++;
+                printf("part dpu index %u \n", dpu_index);
             }
             dpu_index++;
         }

@@ -58,7 +58,7 @@ void
 synthetic_populate(embedding_rank_mapping *rank_mapping, embedding_info *emb_info,
                    int32_t **emb_tables) {
 
-    uint64_t emb_data_type = CPT;
+    uint64_t emb_data_type = ZERO;
 
     printf("generate synthetic tables\n");
     if (emb_data_type == RAND) {

@@ -1,6 +1,29 @@
 # perf multicol
 
 
+# update with push offset fix
+MAX_NR_DPUS=10000
+MAX_NR_EMBEDDING=2000
+MAX_INDEX_PER_BATCH=160
+MAX_NR_BATCHES=60
+NR_COLS=16
+NR_BATCHES=60
+NR_RUN=1
+INDEX_PER_BATCH=160
+MAX_INDEX_PER_BATCH_RAND=160
+NR_ROWS=700000
+NR_EMBEDDING=1500
+NR_TASKLETS=1
+CHECK_RESULTS=1
+RAND_INPUT_SIZE=0
+max nr embedding 2000
+dpu [ms]: 85046.960000, cpu [ms] 520614.176000, dpu acceleration 6.121491
+ DPU PRATIO 444.859884, CPU PRATIO 981.398008, DPU OK ? 1 
+free FIFO [build_synthetic_input_data->inference], DEPTH(2)
+Post-processing traces, this can take a few minutes...
+
+
+
 # perf DPU
         cyc       inst    ratio
 all     2530256  2488080  0.98
